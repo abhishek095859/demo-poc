@@ -33,6 +33,11 @@ jobs:
           terraform apply -auto-approve
 
       - name: Force ECS Deployment
+        env:
+          AWS_DEFAULT_REGION: ap-south-1
+          AWS_REGION: ap-south-1
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
           # This tells ECS to pull the latest image we just pushed in Pipeline 1
           apps=("app-nginx" "app-python" "app-nodejs")
