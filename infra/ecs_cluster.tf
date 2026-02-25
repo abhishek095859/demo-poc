@@ -28,7 +28,7 @@ resource "aws_iam_role_policy_attachment" "ecs_node_policy" {
 }
 
 resource "aws_iam_instance_profile" "ecs_node_profile" {
-  name = "ecs-node-profile"
+  name = "ecs-node-profile-demo"
   role = aws_iam_role.ecs_node_role.name
 }
 
