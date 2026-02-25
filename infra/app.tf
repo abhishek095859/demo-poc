@@ -40,6 +40,10 @@ resource "aws_ecs_service" "app" {
   desired_count   = 2
   launch_type     = "EC2"
 
+  # ADD THESE TWO LINES
+  deployment_minimum_healthy_percent = 0
+  deployment_maximum_percent         = 200
+
   #network_configuration {
     #subnets         = [aws_subnet.pub.id]
    #security_groups = [aws_security_group.ecs_sg.id]
