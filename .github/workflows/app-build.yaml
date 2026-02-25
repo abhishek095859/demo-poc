@@ -9,6 +9,7 @@ jobs:
     strategy:
       matrix:
         app: [app-nginx, app-python, app-nodejs]
+        max-parallel: 1
     
     steps:
       - name: Checkout
@@ -30,7 +31,7 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
           docker build --pull -t $ECR_REGISTRY/${{ matrix.app }}:latest ./${{ matrix.app }}
-          docker push $ECR_REGISTRY/${{ matrix.app }}:latest
+          for i in {1..3}; do docker push $ECR_REGISTRY/${{ matrix.app }}:latest && break || sleep 10; done
 
   update-ecs:
     needs: build-and-push
