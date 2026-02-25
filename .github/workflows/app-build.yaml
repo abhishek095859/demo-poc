@@ -1,17 +1,19 @@
-name: Build and Push to ECR
+name: "2. Build and Deploy"
 
-on:
-  push:
-    branches: [ "main" ]
+on: 
+  workflow_dispatch:  
 
 jobs:
-  build:
+  build-and-push:
     runs-on: ubuntu-latest
     strategy:
+      # FIX 1: Prevent one app's status from canceling the others
+      fail-fast: false 
       matrix:
-        # These folder names must match your ECR repository names in AWS
         app: [app-nginx, app-python, app-nodejs]
-        
+      # FIX 2: Run them one at a time to avoid disk/network overload
+      max-parallel: 1 
+    
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -27,15 +29,33 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build, tag, and push image to Amazon ECR
+      - name: Build, Tag, and Push
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
-          APP_NAME: ${{ matrix.app }}
         run: |
-          # Build the image using the folder path
-          docker build -t $ECR_REGISTRY/$APP_NAME:$IMAGE_TAG -t $ECR_REGISTRY/$APP_NAME:latest ./$APP_NAME
+          # Use --no-cache to ensure a clean build if space is an issue
+          docker build --no-cache --pull -t $ECR_REGISTRY/${{ matrix.app }}:latest ./${{ matrix.app }}
           
-          # Push both the unique SHA tag and the 'latest' tag
-          docker push $ECR_REGISTRY/$APP_NAME:$IMAGE_TAG
-          docker push $ECR_REGISTRY/$APP_NAME:latest
+          # Retry loop is good, keep it
+          for i in {1..3}; do 
+            docker push $ECR_REGISTRY/${{ matrix.app }}:latest && break || sleep 10
+          done
+
+  update-ecs:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-south-1
+
+      - name: Force ECS Restart
+        run: |
+          apps=("app-nginx" "app-python" "app-nodejs")
+          for app in "${apps[@]}"; do
+            echo "Updating $app..."
+            aws ecs update-service --cluster my-app-cluster --service "$app" --force-new-deployment --region ap-south-1
+          done
