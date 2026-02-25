@@ -37,7 +37,7 @@ resource "aws_ecs_service" "app" {
   name            = each.value
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.app[each.value].arn
-  desired_count   = 1
+  desired_count   = 2
   launch_type     = "EC2"
 
   #network_configuration {
@@ -50,5 +50,5 @@ resource "aws_ecs_service" "app" {
   #}
 
   # This ensures the service waits for the EC2 capacity to be ready
-  #depends_on = [aws_autoscaling_group.ecs_asg]
+  depends_on = [aws_autoscaling_group.ecs_asg]
 }
