@@ -1,9 +1,6 @@
-name: "2. Infra and Deploy"
+name: "1. Infrastructure"
 
 on:
-  workflow_run:
-    workflows: ["1. Build and Push"]
-    types: [completed]
   workflow_dispatch: 
 
 jobs:
