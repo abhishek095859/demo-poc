@@ -29,7 +29,7 @@ jobs:
       - name: Terraform Apply (Create ECS/EC2)
         working-directory: ./infra
         run: |
-          terraform init
+          terraform init -upgrade
           terraform apply -auto-approve
 
       - name: Force ECS Deployment
