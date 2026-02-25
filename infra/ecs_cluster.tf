@@ -10,7 +10,7 @@ resource "aws_ecs_cluster" "main" {
 
 # 3. IAM Role for the EC2 Instances to join ECS
 resource "aws_iam_role" "ecs_node_role" {
-  name = "ecs-node-role"
+  name = "ecs-node-role-demo"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
