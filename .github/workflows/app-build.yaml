@@ -1,16 +1,15 @@
-name: Build and Push to ECR
+name: "2. Build and Deploy"
 
-on:
-  workflow_dispatch:
+on: 
+  workflow_dispatch:  
 
 jobs:
-  build:
+  build-and-push:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        # These folder names must match your ECR repository names in AWS
         app: [app-nginx, app-python, app-nodejs]
-        
+    
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -26,15 +25,27 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build, tag, and push image to Amazon ECR
+      - name: Build, Tag, and Push
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
-          APP_NAME: ${{ matrix.app }}
         run: |
-          # Build the image using the folder path
-          docker build -t $ECR_REGISTRY/$APP_NAME:$IMAGE_TAG -t $ECR_REGISTRY/$APP_NAME:latest ./$APP_NAME
-          
-          # Push both the unique SHA tag and the 'latest' tag
-          docker push $ECR_REGISTRY/$APP_NAME:$IMAGE_TAG
-          docker push $ECR_REGISTRY/$APP_NAME:latest
+          docker build -t $ECR_REGISTRY/${{ matrix.app }}:latest ./${{ matrix.app }}
+          docker push $ECR_REGISTRY/${{ matrix.app }}:latest
+
+  update-ecs:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-south-1
+
+      - name: Force ECS Restart
+        run: |
+          apps=("app-nginx" "app-python" "app-nodejs")
+          for app in "${apps[@]}"; do
+            aws ecs update-service --cluster my-app-cluster --service "$app" --force-new-deployment
+          done
