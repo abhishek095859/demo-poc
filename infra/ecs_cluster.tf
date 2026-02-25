@@ -36,7 +36,7 @@ resource "aws_iam_instance_profile" "ecs_node_profile" {
 resource "aws_launch_template" "ecs_lt" {
   name_prefix   = "ecs-template"
   image_id      = data.aws_ssm_parameter.ecs_ami.value # Uses the dynamic ID for Mumbai
-  instance_type = "t3.micro"
+  instance_type = "t3.medium"
   
   iam_instance_profile {
     name = aws_iam_instance_profile.ecs_node_profile.name
@@ -55,8 +55,8 @@ resource "aws_launch_template" "ecs_lt" {
 # 5. Auto Scaling Group
 resource "aws_autoscaling_group" "ecs_asg" {
   vpc_zone_identifier = [aws_subnet.pub.id]
-  desired_capacity    = 1
-  max_size            = 2
+  desired_capacity    = 2
+  max_size            = 5
   min_size            = 1
 
   launch_template {
