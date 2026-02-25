@@ -30,6 +30,8 @@ jobs:
         working-directory: ./infra
         run: |
           terraform init -upgrade
+          terraform state rm aws_launch_template.ecs_lt || true
+          terraform state rm aws_autoscaling_group.ecs_asg || true
           terraform apply -auto-approve
 
       - name: Force ECS Deployment
