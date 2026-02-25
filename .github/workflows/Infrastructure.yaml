@@ -4,43 +4,43 @@ on:
   workflow_run:
     workflows: ["1. Build and Push"]
     types: [completed]
-  workflow_dispatch: # Allows you to run this manually if you just want to update infra
+  workflow_dispatch: 
 
 jobs:
   terraform-and-deploy:
     runs-on: ubuntu-latest
-    # Only run if the build pipeline actually succeeded
+    # Only run if the build pipeline succeeded or if manually triggered
     if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
     
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # 1. Setup AWS Credentials once for the entire job
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
+          aws-region: ap-south-1
 
+      # 2. Setup Terraform
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
+      # 3. Run Terraform
       - name: Terraform Apply (Create ECS/EC2)
         working-directory: ./infra
         run: |
           terraform init -upgrade
           terraform apply -auto-approve
 
+      # 4. Trigger Deployment
       - name: Force ECS Deployment
-        env:
-          AWS_DEFAULT_REGION: ap-south-1
-          AWS_REGION: ap-south-1
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
-          # This tells ECS to pull the latest image we just pushed in Pipeline 1
+          # The AWS CLI will use the credentials from the "Configure AWS" step
           apps=("app-nginx" "app-python" "app-nodejs")
           for app in "${apps[@]}"; do
-            aws ecs update-service --cluster my-app-cluster --service $app --force-new-deployment
+            echo "Requesting new deployment for: $app"
+            aws ecs update-service --cluster my-app-cluster --service "$app" --force-new-deployment
           done
