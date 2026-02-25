@@ -37,12 +37,17 @@ resource "aws_launch_template" "ecs_lt" {
   name_prefix   = "ecs-template"
   image_id      = data.aws_ssm_parameter.ecs_ami.value # Uses the dynamic ID for Mumbai
   instance_type = "t3.medium"
+
+  network_interfaces {
+    associate_public_ip_address = true
+    security_groups             = [aws_security_group.ecs_sg.id]
+  }
   
   iam_instance_profile {
     name = aws_iam_instance_profile.ecs_node_profile.name
   }
 
-  vpc_security_group_ids = [aws_security_group.ecs_sg.id]
+  #  vpc_security_group_ids = [aws_security_group.ecs_sg.id]
 
   # This joins the EC2 instance to your ECS cluster at boot
   user_data = base64encode(<<-EOF
