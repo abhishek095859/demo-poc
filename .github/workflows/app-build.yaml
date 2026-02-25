@@ -9,7 +9,6 @@ jobs:
     strategy:
       matrix:
         app: [app-nginx, app-python, app-nodejs]
-        max-parallel: 1
     
     steps:
       - name: Checkout
