@@ -13,7 +13,7 @@ resource "aws_ecs_task_definition" "app" {
   for_each = toset(var.apps)
   family   = each.value
   
-  network_mode             = "awsvpc"
+  network_mode             = "bridge"
   requires_compatibilities = ["EC2"]
   cpu                      = "256"
   memory                   = "512"
@@ -25,7 +25,7 @@ resource "aws_ecs_task_definition" "app" {
     essential = true
     portMappings = [{
       containerPort = 80
-      hostPort      = 80
+      hostPort      = each.value == "app-nginx" ? 80 : (each.value == "app-python" ? 5000 : 3000)
       protocol      = "tcp"
     }]
   }])
@@ -40,15 +40,15 @@ resource "aws_ecs_service" "app" {
   desired_count   = 1
   launch_type     = "EC2"
 
-  network_configuration {
-    subnets         = [aws_subnet.pub.id]
-    security_groups = [aws_security_group.ecs_sg.id]
+  #network_configuration {
+    #subnets         = [aws_subnet.pub.id]
+   #security_groups = [aws_security_group.ecs_sg.id]
     
     # FIXED: This must be false (or removed entirely) for the EC2 launch type.
     # Public IPs are handled by the EC2 host, not the individual ECS task.
-    assign_public_ip = false 
-  }
+    #assign_public_ip = false 
+  #}
 
   # This ensures the service waits for the EC2 capacity to be ready
-  depends_on = [aws_autoscaling_group.ecs_asg]
+  #depends_on = [aws_autoscaling_group.ecs_asg]
 }
