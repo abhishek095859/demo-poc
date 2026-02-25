@@ -9,14 +9,10 @@ on:
 jobs:
   terraform-and-deploy:
     runs-on: ubuntu-latest
-    # Only run if the build pipeline succeeded or if manually triggered
-    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
-    
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 1. Setup AWS Credentials once for the entire job
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -29,18 +25,8 @@ jobs:
         uses: hashicorp/setup-terraform@v3
 
       # 3. Run Terraform
-      - name: Terraform Apply (Create ECS/EC2)
+      - name: Terraform Apply
         working-directory: ./infra
         run: |
           terraform init -upgrade
           terraform apply -auto-approve
-
-      # 4. Trigger Deployment
-      - name: Force ECS Deployment
-        run: |
-          # The AWS CLI will use the credentials from the "Configure AWS" step
-          apps=("app-nginx" "app-python" "app-nodejs")
-          for app in "${apps[@]}"; do
-            echo "Requesting new deployment for: $app"
-            aws ecs update-service --cluster my-app-cluster --service "$app" --force-new-deployment
-          done
