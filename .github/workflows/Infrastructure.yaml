@@ -26,4 +26,4 @@ jobs:
         working-directory: ./infra
         run: |
           terraform init -upgrade
-          terraform destroy -auto-approve
+          terraform apply -auto-approve
